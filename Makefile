@@ -3,11 +3,11 @@ CC	?= gcc
 CFLAGS	:= -O3 -Wall
 CFLAGS 	+= $(shell pkg-config libnspire --cflags)
 
-CFLAGS_OSXFUSE := -D_FILE_OFFSET_BITS=64 -DFUSE_USE_VERSION=26
-CFLAGS_OSXFUSE += -I/usr/local/include/osxfuse/fuse
+CFLAGS_OSXFUSE := -DFUSE_USE_VERSION=26
+CFLAGS_OSXFUSE += $(shell pkg-config fuse --cflags)
 
-LIBS	:= -lfuse_ino64
-LIBS	+= -framework CoreServices -framework IOKit
+LIBS	:= $(shell pkg-config fuse --libs)
+#LIBS	+= -ework CoreServices -framework IOKit
 LIBS	+= $(shell pkg-config libnspire --libs)
 
 TARGETS = nspire.o dir.o file.o stat.o
@@ -18,7 +18,7 @@ TARGETS = nspire.o dir.o file.o stat.o
 all: nspire
 
 nspire: $(TARGETS)
-	$(CC) -o $@ $(LIBS) $^
+	$(CC) -o $@ $(LIBS) $(CFLAGS) $^
 
 clean:
 	rm -f $(TARGETS) *.o
