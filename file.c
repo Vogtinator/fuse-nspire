@@ -26,7 +26,7 @@ struct file_cache {
 	size_t len;
 	lock_t lock;
 	int needs_sync;
-	unsigned char data[];
+	unsigned char *data;
 };
 
 int nsp_truncate(const char *path, off_t size) {
@@ -104,8 +104,13 @@ int nsp_open(const char *path, struct fuse_file_info *fi) {
 	}
 
 	/* Allocate buffer */
-	file = malloc(sizeof(*file) + i.size);
+	file = calloc(1, sizeof(*file));
 	if (!file) {
+		ret = -ENOMEM;
+		goto end;
+	}
+	file->data = malloc(i.size);
+	if (!file->data) {
 		ret = -ENOMEM;
 		goto end;
 	}
@@ -133,6 +138,7 @@ int nsp_open(const char *path, struct fuse_file_info *fi) {
 	goto end;
 
 error_free:
+	free(file->data);
 	free(file);
 end:
 	device_unlock(current_ctx);
@@ -178,14 +184,13 @@ int nsp_write(const char *path, const char *buf, size_t size, off_t offset,
 	atomic_lock(&f->lock);
 
 	if (offset + size > f->len) {
-		struct file_cache *new;
-		new = realloc(f, sizeof(*new) + offset + size);
+		unsigned char *new;
+		new = realloc(f->data, offset + size);
 		if (!new) {
 			ret = -ENOMEM;
 			goto end;
 		}
-		f = new;
-		fi->fh = (typeof(fi->fh))new;
+		f->data = new;
 		f->len = offset + size;
 	}
 
@@ -246,6 +251,7 @@ int nsp_release(const char* path, struct fuse_file_info* fi) {
 	struct file_cache *f = (struct file_cache *)(fi->fh);
 
 	ret = nsp_fsync(path, 0, fi);
+	free(f->data);
 	free(f);
 	fi->fh = 0;
 
