@@ -18,7 +18,7 @@ TARGETS = nspire.o dir.o file.o stat.o
 all: nspire
 
 nspire: $(TARGETS)
-	$(CC) -o $@ $(LIBS) $(CFLAGS) $^
+	$(CC) -o $@ $(CFLAGS) $^ $(LIBS)
 
 clean:
 	rm -f $(TARGETS) *.o
